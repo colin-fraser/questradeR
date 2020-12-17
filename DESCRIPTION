@@ -20,3 +20,5 @@ Imports:
 RoxygenNote: 7.1.1
 Suggests: 
     testthat
+URL: https://github.com/colin-fraser/questradeR
+BugReports: https://github.com/colin-fraser/questradeR/issues
