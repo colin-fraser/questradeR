@@ -1,7 +1,7 @@
 .ask <- function(prompt, default = NULL) {
   prompt <- glue::glue(prompt)
   cat(prompt)
-  input <- readline('>> ')
+  input <- readline(">> ")
   if (!is.null(default)) {
     if (input == "") {
       input <- default
@@ -10,7 +10,7 @@
   input
 }
 
-.askyesno <- function(prompt, yes = 'y', no = 'n', append_opts = TRUE,
+.askyesno <- function(prompt, yes = "y", no = "n", append_opts = TRUE,
                       allow_na = FALSE) {
   if (append_opts) {
     prompt <- glue::glue("{prompt} ({crayon::yellow(yes)}/{crayon::yellow(no)})")
@@ -25,4 +25,20 @@
   } else {
     return(FALSE)
   }
+}
+
+format_time <- function(x) {
+  format(x, "%Y-%m-%dT%H:%M:%S%z")
+}
+
+from_camel_case <- function(x) {
+  x %>%
+    stringr::str_split("(?<=[[:lower:]])(?=[[:upper:]])") %>%
+    purrr::map(stringr::str_to_lower) %>%
+    purrr::map_chr(stringr::str_c, collapse = "_")
+}
+
+colnames_from_camel_case <- function(x) {
+  colnames(x) <- from_camel_case(colnames(x))
+  x
 }

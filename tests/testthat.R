@@ -1,4 +1,4 @@
 library(testthat)
-library(questrader)
+library(questradeR)
 
-test_check("questrader")
+test_check("questradeR")

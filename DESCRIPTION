@@ -16,7 +16,13 @@ Imports:
     magrittr,
     urltools,
     glue,
-    crayon
+    crayon,
+    lubridate,
+    dplyr,
+    purrr,
+    tibble,
+    yaml,
+    stringr
 RoxygenNote: 7.1.1
 Suggests: 
     testthat
