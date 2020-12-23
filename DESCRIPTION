@@ -2,10 +2,9 @@ Package: questradeR
 Type: Package
 Title: An R package for accessing the Questrade API
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Colin Fraser
+Maintainer: Colin Fraser <colinf@hey.com>
+Description: Access the Questrade API
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -22,7 +21,9 @@ Imports:
     purrr,
     tibble,
     yaml,
-    stringr
+    stringr,
+    ggplot2,
+    scales
 RoxygenNote: 7.1.1
 Suggests: 
     testthat
