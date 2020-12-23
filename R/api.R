@@ -6,7 +6,8 @@ qt_api_url <- function(name, account_set = load_account_set(), url_values = NULL
     "account_positions" = "v1/accounts/{account_id}/positions",
     "account_balances" = "v1/accounts/{account_id}/balances",
     "candles" = "v1/markets/candles/{symbol_id}",
-    "search_symbol" = "v1/symbols/search"
+    "search_symbol" = "v1/symbols/search",
+    "symbols" = "v1/symbols"
   ), .envir = url_values)
   httr::build_url(out)
 }
@@ -44,6 +45,7 @@ qt_api_get <- function(name, account_set = load_account_set(), url_values = NULL
       stop("Refreshing failed.")
     }
   }
+  stop_for_error(resp)
   return(resp)
 }
 
@@ -142,7 +144,8 @@ qt_api_candles <- function(symbol_id, start_time, end_time, interval =
     "candles", account_set, list(symbol_id = symbol_id),
     list(startTime = start_time, endTime = end_time, interval = interval)
   ) %>%
-    pluck_and_map("candles")
+    pluck_and_map("candles") %>%
+    dplyr::mutate(dplyr::across(c(start, end), lubridate::ymd_hms))
 }
 
 #' Search symbol
@@ -153,15 +156,49 @@ qt_api_candles <- function(symbol_id, start_time, end_time, interval =
 #' @return a dataframe with symbols
 #' @export
 #'
-qt_search_symbol <- function(prefix, account_set = load_account_set()) {
+qt_api_search_symbol <- function(prefix, account_set = load_account_set()) {
   qt_api_get("search_symbol", account_set = account_set, query = list(prefix = prefix)) %>%
     pluck_and_map("symbols")
+}
+
+qt_api_symbols_raw <- function(symbol_ids = NULL, symbol_names = NULL, account_set = load_account_set()) {
+  if (is.null(symbol_ids) + is.null(symbol_names) != 1) {
+    stop("Exactly 1 of 'symbol_ids' or 'symbol_names' should be NULL")
+  }
+  if (!is.null(symbol_ids)) {
+    payload <- list(ids = paste(symbol_ids, collapse = ","))
+  } else if (!is.null(symbol_names)) {
+    payload <- list(names = paste(symbol_names, collapse = ","))
+  }
+  qt_api_get("symbols", query = payload)
+}
+
+#' Get information on symbols
+#'
+#' @param symbol_names vector of exact names of symbols
+#' @param symbol_ids vector of symbol ids
+#' @param account_set account set
+#'
+#' @note Exactly one of symbol_names or symbol_ids should be provided. Not all data is provided by
+#' this function—use .qt_api_symbols_raw to get all the data.
+#'
+#' @return a dataframe of symbol data.
+#' @export
+#'
+qt_api_symbols <- function(symbol_names = NULL, symbol_ids = NULL, account_set = load_account_set()) {
+  qt_api_symbols_raw(symbol_ids = symbol_ids, symbol_names = symbol_names, account_set = account_set) %>%
+    httr::content() %>%
+    purrr::pluck("symbols") %>%
+    purrr::map(~ .x[c("symbol", "symbolId", "description", "prevDayClosePrice", "highPrice52", "lowPrice52")]) %>%
+    purrr::map_df(as_tibble) %>%
+    colnames_from_camel_case()
 }
 
 pluck_and_map <- function(resp, pluck_val) {
   resp %>%
     httr::content() %>%
     purrr::pluck(pluck_val) %>%
+    purrr::discard(~ is.null(.x)) %>%
     purrr::map_df(tibble::as_tibble) %>%
     colnames_from_camel_case()
 }

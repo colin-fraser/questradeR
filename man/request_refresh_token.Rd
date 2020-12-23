@@ -4,7 +4,7 @@
 \alias{request_refresh_token}
 \title{Request refresh token}
 \usage{
-request_refresh_token(account_set, rt)
+request_refresh_token(account_set, request_token)
 }
 \arguments{
 \item{account_set}{account set object}

@@ -16,10 +16,6 @@ PRACTICE_LOGIN_URL <- "https://practicelogin.questrade.com/oauth2/token"
 REFRESH_KEY_GEN_URL <- "https://apphub.questrade.com/UI/UserApps.aspx"
 PRACTICE_REFRESH_KEY_GEN_URL <- "https://practicelogin.questrade.com/APIAccess/UserApps.aspx"
 
-# defaults for local storage
-DEFAULT_DIR <- "~/.questrader"
-DEFAULT_ACCOUNT_SET <- "questrader"
-
 
 # functions -----------------------------------------------------------------------------------
 
@@ -58,18 +54,18 @@ get_stored_token <- function(account_set, token_type = c(REFRESH_TOKEN, ACCESS_T
 #' @return an httr response object from questrade.com containing refreshed tokens
 #' @export
 #'
-request_refresh_token <- function(account_set, rt) {
+request_refresh_token <- function(account_set, request_token) {
   end_point <- account_set$login_url
+
   response <- httr::POST(
     end_point,
     query = list(
       grant_type = REFRESH_TOKEN,
-      refresh_token = rt
-    ),
-    httr::accept_json()
+      refresh_token = request_token
+    )
   )
 
-  httr::stop_for_status(response, task = "Login")
+  stop_for_error(response)
 
   response
 }
@@ -107,7 +103,22 @@ qt_refresh_token <- function(account_set = load_account_set(), refresh_token = N
                              update_saved_account_set = TRUE) {
   rt <- if (is.null(refresh_token)) get_stored_token(account_set, REFRESH_TOKEN) else refresh_token
 
-  resp <- httr::content(request_refresh_token(account_set, rt))
+  resp <- tryCatch(httr::content(request_refresh_token(account_set, rt)),
+                   error = function(e) {
+                     new_rt <- .askyesno("Failed to refresh manual access token. You may need to get a new one manually. Do you want to do this now?")
+                     if (new_rt) {
+                       if (account_set$practice) {
+                         key_url <- PRACTICE_REFRESH_KEY_GEN_URL
+                       } else {
+                         key_url <- REFRESH_KEY_GEN_URL
+                       }
+                       .ask(glue::glue("Visit {key_url} to get a refresh token and enter it in the next prompt. (Press Enter)."))
+                       qt_set_refresh_token_manually(account_set)
+                       return(httr::content(request_refresh_token(account_set, get_stored_token(account_set, REFRESH_TOKEN))))
+                     }
+                     stop("Failed to exchange refresh token")
+                   }
+  )
 
   if (class(resp) != "list") {
     stop()
@@ -145,126 +156,4 @@ login_url <- function(practice) {
   } else {
     return(LOGIN_URL)
   }
-}
-
-
-#' Stored account information
-#'
-#' @return The directory to look in for account sets
-#' @export
-#'
-qt_dir <- function() {
-  # TODO: change this so that it supports options and other ways to get this
-  fs::path_expand(DEFAULT_DIR)
-}
-
-#' Default account set filepath
-#'
-#' @return The default account set directory
-#'
-qt_default_account_set <- function() {
-  fs::path(qt_dir(), DEFAULT_ACCOUNT_SET, ext = "yaml")
-}
-
-#' Create the account_set directory
-#'
-#' @param directory where to store account_set information
-#'
-#' @return The path to the created object (invisibly).
-#' @export
-#'
-qt_init <- function(directory = qt_dir()) {
-  if (fs::dir_exists(directory)) {
-    if (!.askyesno(glue::glue("Directory {directory} exists. Re-initialize?"))) {
-      stop("Initialization cancelled")
-    }
-  }
-
-  fs::dir_create(directory)
-}
-
-#' Create an account set
-#'
-#' @param account_set_name the name of the account set
-#' @param practice boolean indicating whether the account is a practice account
-#'
-#' @return an object of class account_set
-#' @export
-#'
-new_account_set <- function(account_set_name, practice) {
-  structure(list(
-    name = account_set_name,
-    practice = practice,
-    login_url = login_url(practice),
-    api_server = NULL
-  ), class = "account_set")
-}
-
-#' Load an account set
-#'
-#' @param account_set_name the name of the stored account_set
-#' @param path where to look for the account_set
-#'
-#' @return the account_set object
-#' @export
-#'
-load_account_set <- function(account_set_name = "questrader", path = qt_dir()) {
-  filepath <- fs::path(path, account_set_name, ext = "yaml")
-  if (fs::file_exists(filepath)) {
-    account_set <- yaml::read_yaml(filepath)
-  } else {
-    stop(glue::glue("No data stored in {path} for account set '{account_set}'"))
-  }
-  structure(account_set, class = "account_set")
-}
-
-#' Interactively add an account set
-#'
-#' @param directory where to store the directory
-#'
-#' @return the created account set
-#'
-qt_add_account_set <- function(directory = qt_dir()) {
-  if (!fs::dir_exists(directory)) {
-    stop("No qt directory found. Run qt_init().")
-  }
-
-  name <- .ask("What do you want to call the account set? This is {crayon::underline('not')} your Questrade username. (Leave blank for default.)", DEFAULT_ACCOUNT_SET)
-
-  account_set_config_filepath <- fs::path(directory, name, ext = "yaml")
-  if (fs::file_exists(account_set_config_filepath)) {
-    overwrite <- .askyesno(glue::glue("Account set config already exists at {account_set_config_filepath}. Overwrite?"))
-    if (!overwrite) stop("New account set canceled.")
-  }
-
-  is_practice <- .askyesno("Is this a practice account?")
-
-  cfg <- new_account_set(name, is_practice)
-  if (is_practice) {
-    key_url <- PRACTICE_REFRESH_KEY_GEN_URL
-  } else {
-    key_url <- REFRESH_KEY_GEN_URL
-  }
-
-  .ask(glue::glue("Visit {key_url} to get a refresh token and enter it in the next prompt. (Press Enter)."))
-  cfg <- qt_set_refresh_token_manually(cfg) %>%
-    qt_refresh_token()
-
-  yaml::write_yaml(cfg, account_set_config_filepath)
-  message("Account set saved")
-
-  invisible(cfg)
-}
-
-#' List stored account sets
-#'
-#' @param directory where to look for account sets
-#'
-#' @return character vector of account set names
-#' @export
-#'
-qt_account_set_list <- function(directory = qt_dir()) {
-  fs::dir_ls(directory) %>%
-    fs::path_file() %>%
-    fs::path_ext_remove()
 }

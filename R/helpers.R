@@ -27,8 +27,15 @@
   }
 }
 
+#' Format time for questrade
+#'
+#' @param x
+#'
+#' @return
+#'
+#' @importFrom stringr str_replace
 format_time <- function(x) {
-  format(x, "%Y-%m-%dT%H:%M:%S%z")
+  str_replace(format(x, "%Y-%m-%dT%H:%M:%S%z"), "(?<=-\\d\\d)(?=00)", ":")
 }
 
 from_camel_case <- function(x) {
@@ -41,4 +48,12 @@ from_camel_case <- function(x) {
 colnames_from_camel_case <- function(x) {
   colnames(x) <- from_camel_case(colnames(x))
   x
+}
+
+
+stop_for_error <- function(resp, task = "") {
+  if (httr::http_error(resp)) {
+    stop(glue::glue("HTTP error. Response content:\n\n{httr::content(resp)}"))
+  }
+  resp
 }
