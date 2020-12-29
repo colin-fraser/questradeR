@@ -7,7 +7,8 @@ qt_api_url <- function(name, account_set = load_account_set(), url_values = NULL
     "account_balances" = "v1/accounts/{account_id}/balances",
     "candles" = "v1/markets/candles/{symbol_id}",
     "search_symbol" = "v1/symbols/search",
-    "symbols" = "v1/symbols"
+    "symbols" = "v1/symbols",
+    "quote" = "v1/markets/quotes/"
   ), .envir = url_values)
   httr::build_url(out)
 }
@@ -105,6 +106,10 @@ qt_api_account_balances <- function(account_id, account_set = load_account_set()
     purrr::map_depth(2, tibble::as_tibble) %>%
     purrr::map(dplyr::bind_rows) %>%
     purrr::map(colnames_from_camel_case)
+}
+
+qt_api_quotes <- function(ids, account_set = load_account_set()) {
+  qt_api_get("quote", account_set, query = list(ids = paste(ids, collapse = ',')))
 }
 
 #' Get candlesticks
