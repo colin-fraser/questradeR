@@ -41,7 +41,7 @@ qt_api_get <- function(name, account_set = load_account_set(), url_values = NULL
     if (try <= 1) {
       message("Invalid token. Attempting to refresh.")
       qt_refresh_token(account_set)
-      resp <- qt_api_get(name, account_set, url_values, query, try = try + 1)
+      resp <- qt_api_get(name, account_set, url_values, query, try = try + 1,auth_token = auth_token)
     } else {
       stop("Refreshing failed.")
     }
@@ -73,8 +73,8 @@ qt_api_time <- function(account_set = load_account_set(), auth_token = NULL) {
 #' @return a tibble with a list of accounts
 #' @export
 #'
-qt_api_accounts <- function(account_set = load_account_set()) {
-  qt_api_get("accounts") %>%
+qt_api_accounts <- function(account_set = load_account_set(), auth_token = NULL) {
+  qt_api_get("accounts", auth_token = auth_token) %>%
     pluck_and_map("accounts")
 }
 
@@ -86,8 +86,8 @@ qt_api_accounts <- function(account_set = load_account_set()) {
 #' @return a list of tibbles with positions
 #' @export
 #'
-qt_api_account_positions <- function(account_id, account_set = load_account_set()) {
-  qt_api_get("account_positions", account_set, list(account_id = account_id)) %>%
+qt_api_account_positions <- function(account_id, account_set = load_account_set(), auth_token = NULL) {
+  qt_api_get("account_positions", account_set, list(account_id = account_id),auth_token = auth_token) %>%
     pluck_and_map("positions")
 }
 
@@ -99,8 +99,8 @@ qt_api_account_positions <- function(account_id, account_set = load_account_set(
 #' @return a tibble with a list of account balances
 #' @export
 #'
-qt_api_account_balances <- function(account_id, account_set = load_account_set()) {
-  qt_api_get("account_balances", account_set, list(account_id = account_id)) %>%
+qt_api_account_balances <- function(account_id, account_set = load_account_set(), auth_token = NULL) {
+  qt_api_get("account_balances", account_set, list(account_id = account_id),auth_token = auth_token) %>%
     httr::stop_for_status("Getting account balance") %>%
     httr::content() %>%
     purrr::map_depth(2, tibble::as_tibble) %>%
@@ -108,8 +108,8 @@ qt_api_account_balances <- function(account_id, account_set = load_account_set()
     purrr::map(colnames_from_camel_case)
 }
 
-qt_api_quotes <- function(ids, account_set = load_account_set()) {
-  qt_api_get("quote", account_set, query = list(ids = paste(ids, collapse = ',')))
+qt_api_quotes <- function(ids, account_set = load_account_set(), auth_token = NULL) {
+  qt_api_get("quote", account_set, query = list(ids = paste(ids, collapse = ',')),auth_token = auth_token)
 }
 
 #' Get candlesticks
@@ -141,7 +141,7 @@ qt_api_candles <- function(symbol_id, start_time, end_time, interval =
                                "OneWeek",
                                "OneMonth",
                                "OneYear"
-                             ), account_set = load_account_set()) {
+                             ), account_set = load_account_set(), auth_token = NULL) {
   interval <- match.arg(interval)
   start_time <- format_time(start_time)
   end_time <- format_time(end_time)
@@ -161,12 +161,12 @@ qt_api_candles <- function(symbol_id, start_time, end_time, interval =
 #' @return a dataframe with symbols
 #' @export
 #'
-qt_api_search_symbol <- function(prefix, account_set = load_account_set()) {
-  qt_api_get("search_symbol", account_set = account_set, query = list(prefix = prefix)) %>%
+qt_api_search_symbol <- function(prefix, account_set = load_account_set(), auth_token = NULL) {
+  qt_api_get("search_symbol", account_set = account_set, query = list(prefix = prefix),auth_token = auth_token) %>%
     pluck_and_map("symbols")
 }
 
-qt_api_symbols_raw <- function(symbol_ids = NULL, symbol_names = NULL, account_set = load_account_set()) {
+qt_api_symbols_raw <- function(symbol_ids = NULL, symbol_names = NULL, account_set = load_account_set(), auth_token = NULL) {
   if (is.null(symbol_ids) + is.null(symbol_names) != 1) {
     stop("Exactly 1 of 'symbol_ids' or 'symbol_names' should be NULL")
   }
@@ -175,7 +175,7 @@ qt_api_symbols_raw <- function(symbol_ids = NULL, symbol_names = NULL, account_s
   } else if (!is.null(symbol_names)) {
     payload <- list(names = paste(symbol_names, collapse = ","))
   }
-  qt_api_get("symbols", query = payload)
+  qt_api_get("symbols", query = payload,auth_token = auth_token)
 }
 
 #' Get information on symbols
