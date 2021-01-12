@@ -104,20 +104,20 @@ qt_refresh_token <- function(account_set = load_account_set(), refresh_token = N
   rt <- if (is.null(refresh_token)) get_stored_token(account_set, REFRESH_TOKEN) else refresh_token
 
   resp <- tryCatch(httr::content(request_refresh_token(account_set, rt)),
-                   error = function(e) {
-                     new_rt <- .askyesno("Failed to refresh manual access token. You may need to get a new one manually. Do you want to do this now?")
-                     if (new_rt) {
-                       if (account_set$practice) {
-                         key_url <- PRACTICE_REFRESH_KEY_GEN_URL
-                       } else {
-                         key_url <- REFRESH_KEY_GEN_URL
-                       }
-                       .ask(glue::glue("Visit {key_url} to get a refresh token and enter it in the next prompt. (Press Enter)."))
-                       qt_set_refresh_token_manually(account_set)
-                       return(httr::content(request_refresh_token(account_set, get_stored_token(account_set, REFRESH_TOKEN))))
-                     }
-                     stop("Failed to exchange refresh token")
-                   }
+    error = function(e) {
+      new_rt <- .askyesno("Failed to refresh manual access token. You may need to get a new one manually. Do you want to do this now?")
+      if (new_rt) {
+        if (account_set$practice) {
+          key_url <- PRACTICE_REFRESH_KEY_GEN_URL
+        } else {
+          key_url <- REFRESH_KEY_GEN_URL
+        }
+        .ask(glue::glue("Visit {key_url} to get a refresh token and enter it in the next prompt. (Press Enter)."))
+        qt_set_refresh_token_manually(account_set)
+        return(httr::content(request_refresh_token(account_set, get_stored_token(account_set, REFRESH_TOKEN))))
+      }
+      stop("Failed to exchange refresh token")
+    }
   )
 
   if (class(resp) != "list") {
