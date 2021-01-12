@@ -6,8 +6,8 @@ DEFAULT_DIR <- "~/.questrader"
 DEFAULT_ACCOUNT_SET <- "questrader"
 
 # option names
-DEFAULT_DIR_OPTION <- 'default.dir'
-DEFAULT_ACCOUNT_SET_OPTION <- 'default.account.set'
+DEFAULT_DIR_OPTION <- "default.dir"
+DEFAULT_ACCOUNT_SET_OPTION <- "default.account.set"
 
 # Functions -----------------------------------------------------------------------------------
 
@@ -140,7 +140,7 @@ qt_account_set_list <- function(directory = qt_dir()) {
 
 qt_delete_account_set <- function(account_set_name, dir = qt_dir()) {
   acs <- load_account_set(account_set_name, dir)
-  filename <- fs::path(dir, account_set_name, ext = 'yaml')
+  filename <- fs::path(dir, account_set_name, ext = "yaml")
   fs::file_delete(filename)
   message(glue::glue("{filename} deleted"))
   keyring::key_delete(acs$name, REFRESH_TOKEN)
