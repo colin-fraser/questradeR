@@ -10,5 +10,24 @@ test_that("endpoints works", {
 
 test_that("requests work", {
   auth_token <- Sys.getenv("QUESTRADER_ACCESS_TOKEN")
+  if (auth_token == "") {
+    stop("No environment variable QUESTRADER_ACCESS_TOKEN found. Set it to run the test.")
+  }
   expect_s3_class(qt_api_time(auth_token = auth_token), "POSIXct")
 })
+
+test_that("qt_api requests return data frames", {
+  auth_token <- Sys.getenv("QUESTRADER_ACCESS_TOKEN")
+  accnum <- Sys.getenv("QUESTRADER_ACCOUNT_NUMBER")
+  if (auth_token == "") {
+    stop("No environment variable QUESTRADER_ACCESS_TOKEN found. Set it to run the test.")
+  }
+  if (accnum == "") {
+    stop("No environment variable QUESTRADER_ACCOUNT_NUMBER found. Set it to run the test.")
+  }
+  expect_s3_class(qt_api_accounts(auth_token = auth_token), "tbl_df")
+  expect_s3_class(qt_api_account_positions(accnum, auth_token = auth_token), "tbl_df")
+  expect_s3_class(qt_api_account_balances(accnum, auth_token = auth_token)[['perCurrencyBalances']], "tbl_df")
+}
+
+)
