@@ -204,6 +204,7 @@ pluck_and_map <- function(resp, pluck_val) {
     httr::content() %>%
     purrr::pluck(pluck_val) %>%
     purrr::discard(~ is.null(.x)) %>%
+    purrr::map_depth(2, function(x) if (is.null(x)) {NA} else {x}) %>%
     purrr::map_df(tibble::as_tibble) %>%
     colnames_from_camel_case()
 }
